@@ -284,7 +284,6 @@ namespace AppleGame
 
     void DeinializeGame(Game& game)
     {
-        //очищаем память!
         if (game.apples != nullptr)
         {
             delete[] game.apples;
