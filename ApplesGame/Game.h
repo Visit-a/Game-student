@@ -6,16 +6,37 @@
 #include "Player.h"
 #include "Apple.h"
 #include "Rock.h"
+#include <cstdint>
 
 namespace AppleGame
 {
+    // Режимы игры через битовые маски
+    enum class GameMode : uint32_t
+    {
+        None = 0,
+        WithAcceleration = 1 << 0,     // 1 - с ускорением
+        FiftyApples = 1 << 1,          // 2 - 50 яблок
+        RandomApples = 1 << 2          // 4 - случайное количество яблок
+    };
+
     // Состояния завершения игры
     enum class GameFinishState
     {
         None,           // Игра продолжается
-        Victory,        // Победа 
-        Defeat          // Поражение 
+        Victory,        // Победа (все яблоки собраны)
+        Defeat          // Поражение (столкновение с камнем или границей)
     };
+
+    // Вспомогательные функции для работы с битовыми масками
+    inline bool HasGameModeFlag(GameMode mode, GameMode flag)
+    {
+        return (static_cast<uint32_t>(mode) & static_cast<uint32_t>(flag)) != 0;
+    }
+
+    inline GameMode CombineGameModes(GameMode a, GameMode b)
+    {
+        return static_cast<GameMode>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+    }
 
     struct Game
     {
@@ -35,11 +56,8 @@ namespace AppleGame
         float timeSinceGameFinish = 0.f;
         sf::RectangleShape background;
 
-        // Три булевых переменных для режимов игры
-        bool mode20WithAccel = true;   // Режим 1: 20 яблок с ускорением
-        bool mode20NoAccel = false;    // Режим 2: 20 яблок без ускорения
-        bool mode50WithAccel = false;  // Режим 3: 50 яблок с ускорением
-        bool modeRandomApples = false; // Режим 4: случайное количество яблок
+        // Режим игры через битовую маску
+        GameMode gameMode = GameMode::None;
 
         // Ресурсы
         sf::Texture playerTexture;
@@ -62,4 +80,5 @@ namespace AppleGame
     void UpdateGame(Game& game, float deltaTime);
     void DrawGame(Game& game, sf::RenderWindow& window);
     void DeinializeGame(Game& game);
+    void SetGameMode(Game& game, GameMode mode);
 }

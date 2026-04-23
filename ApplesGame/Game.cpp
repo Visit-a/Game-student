@@ -1,9 +1,44 @@
 #include "Game.h"
 #include <cassert>
 #include <iostream>
+#include <string>
 
 namespace AppleGame
 {
+    // Установка режима игры
+    void SetGameMode(Game& game, GameMode mode)
+    {
+        game.gameMode = mode;
+
+        // Определяем количество яблок в зависимости от режима
+        if (HasGameModeFlag(game.gameMode, GameMode::RandomApples))
+        {
+            // Случайное количество яблок от 10 до 60
+            game.numApples = 10 + (rand() % 51);
+            std::cout << "Mode: Random apples (" << game.numApples << ")";
+        }
+        else if (HasGameModeFlag(game.gameMode, GameMode::FiftyApples))
+        {
+            game.numApples = 50;
+            std::cout << "Mode: 50 apples";
+        }
+        else
+        {
+            game.numApples = 20;
+            std::cout << "Mode: 20 apples";
+        }
+
+        // Выводим информацию об ускорении
+        if (HasGameModeFlag(game.gameMode, GameMode::WithAcceleration))
+        {
+            std::cout << " with acceleration\n";
+        }
+        else
+        {
+            std::cout << " without acceleration\n";
+        }
+    }
+
     void RestartGame(Game& game)
     {
         InitPlayer(game.player, game.playerTexture);
@@ -15,28 +50,15 @@ namespace AppleGame
             game.apples = nullptr;
         }
 
-        // Определяем количество яблок в зависимости от режима
-        if (game.modeRandomApples)
-        {
-            // Случайное количество яблок от 10 до 60
-            game.numApples = 10 + (rand() % 51);
-            std::cout << "Random apples count: " << game.numApples << "\n";
-        }
-        else if (game.mode50WithAccel)
-        {
-            game.numApples = 50;
-        }
-        else
-        {
-            game.numApples = 20;
-        }
+        // Устанавливаем количество яблок
+        SetGameMode(game, game.gameMode);
 
         game.applesRemaining = game.numApples;
         game.numEatenApples = 0;
 
         // Выделяем память под массив яблок
         game.apples = new Apple[game.numApples];
-        
+
         // Инициализация яблок
         for (int i = 0; i < game.numApples; ++i)
         {
@@ -53,16 +75,6 @@ namespace AppleGame
         game.finishState = GameFinishState::None;
         game.timeSinceGameFinish = 0.f;
         game.background.setFillColor(sf::Color::Black);
-        
-        // Выводим информацию о выбранном режиме
-        if (game.modeRandomApples)
-            std::cout << "Mode: Random apples (" << game.numApples << ") with acceleration\n";
-        else if (game.mode20WithAccel)
-            std::cout << "Mode: 20 apples with acceleration\n";
-        else if (game.mode20NoAccel)
-            std::cout << "Mode: 20 apples without acceleration\n";
-        else if (game.mode50WithAccel)
-            std::cout << "Mode: 50 apples with acceleration\n";
     }
 
     void InitGame(Game& game)
@@ -74,10 +86,9 @@ namespace AppleGame
         // Загружаем шрифт для текста победы/поражения
         if (!game.font.loadFromFile(RESOURCES_PATH + "arial.ttf"))
         {
-            // Если шрифт не загрузился, используем дефолтный
             std::cout << "Warning: Font not found, using default\n";
         }
-        
+
         game.finishText.setFont(game.font);
         game.finishText.setCharacterSize(48);
         game.finishText.setFillColor(sf::Color::White);
@@ -101,38 +112,37 @@ namespace AppleGame
         std::cout << "1. 20 apples with acceleration\n";
         std::cout << "2. 20 apples without acceleration\n";
         std::cout << "3. 50 apples with acceleration\n";
-        std::cout << "4. Random apples count (10-60) with acceleration\n";
+        std::cout << "4. Random apples with acceleration\n";
         std::cout << "Enter choice (1-4): ";
-        
+
         int choice;
         std::cin >> choice;
-        
-        // Сбрасываем все режимы
-        game.mode20WithAccel = false;
-        game.mode20NoAccel = false;
-        game.mode50WithAccel = false;
-        game.modeRandomApples = false;
-        
-        // Устанавливаем выбранный режим
+
+        // Устанавливаем режим через битовые маски
+        GameMode selectedMode = GameMode::None;
+
         switch (choice)
         {
         case 1:
-            game.mode20WithAccel = true;
+            selectedMode = GameMode::WithAcceleration;
             break;
         case 2:
-            game.mode20NoAccel = true;
+            selectedMode = GameMode::None;
             break;
         case 3:
-            game.mode50WithAccel = true;
+            selectedMode = CombineGameModes(GameMode::FiftyApples, GameMode::WithAcceleration);
             break;
         case 4:
-            game.modeRandomApples = true;
+            selectedMode = CombineGameModes(GameMode::RandomApples, GameMode::WithAcceleration);
             break;
         default:
             std::cout << "Wrong choice, using default mode 1\n";
-            game.mode20WithAccel = true;
+            selectedMode = GameMode::WithAcceleration;
             break;
         }
+
+        std::cout << "Selected mode value: " << static_cast<uint32_t>(selectedMode) << "\n";
+        game.gameMode = selectedMode;
 
         RestartGame(game);
     }
@@ -192,22 +202,22 @@ namespace AppleGame
                         // Перемещаем яблоко за экран (съедено)
                         game.apples[i].position = { -100.f, -100.f };
                         game.apples[i].sprite.setPosition(game.apples[i].position.x, game.apples[i].position.y);
-                        
+
                         ++game.numEatenApples;
                         --game.applesRemaining;
-                        
-                        std::cout << "Apples eaten: " << game.numEatenApples 
-                                  << ", remaining: " << game.applesRemaining << "\n";
-                        
-                        // Проверяем, нужно ли ускорение
-                        if (game.mode20WithAccel || game.mode50WithAccel || game.modeRandomApples)
+
+                        std::cout << "Apples eaten: " << game.numEatenApples
+                            << ", remaining: " << game.applesRemaining << "\n";
+
+                        // Проверяем ускорение через битовую маску
+                        if (HasGameModeFlag(game.gameMode, GameMode::WithAcceleration))
                         {
                             game.player.speed += ACCELERATION;
                             std::cout << "Speed: " << game.player.speed << "\n";
                         }
 
                         game.eatSound.play();
-                        
+
                         // Проверяем победу - все яблоки съедены
                         if (game.applesRemaining <= 0)
                         {
@@ -242,9 +252,9 @@ namespace AppleGame
             }
 
             // Проверка столкновения с границами экрана
-            if (game.player.position.x - PLAYER_SIZE / 2.f < 0.f || 
+            if (game.player.position.x - PLAYER_SIZE / 2.f < 0.f ||
                 game.player.position.x + PLAYER_SIZE / 2.f > SCREEN_WIDTH ||
-                game.player.position.y - PLAYER_SIZE / 2.f < 0.f || 
+                game.player.position.y - PLAYER_SIZE / 2.f < 0.f ||
                 game.player.position.y + PLAYER_SIZE / 2.f > SCREEN_HEIGHT)
             {
                 game.isGameFinished = true;
@@ -260,7 +270,7 @@ namespace AppleGame
             if (game.timeSinceGameFinish <= PAUSE_LENGTH)
             {
                 game.timeSinceGameFinish += deltaTime;
-                
+
                 // Разный цвет фона для победы и поражения
                 if (game.finishState == GameFinishState::Victory)
                 {
@@ -303,7 +313,7 @@ namespace AppleGame
             game.rocks[i].sprite.setPosition(game.rocks[i].position.x, game.rocks[i].position.y);
             window.draw(game.rocks[i].sprite);
         }
-        
+
         // Рисуем текст победы/поражения
         if (game.isGameFinished)
         {
@@ -315,25 +325,23 @@ namespace AppleGame
             }
             else if (game.finishState == GameFinishState::Defeat)
             {
-                textStr = "DEFEAT!\nApples collected: " + std::to_string(game.numEatenApples) + 
-                          "/" + std::to_string(game.numApples);
+                textStr = "DEFEAT!\nApples collected: " + std::to_string(game.numEatenApples) +
+                    "/" + std::to_string(game.numApples);
                 game.finishText.setFillColor(sf::Color::White);
             }
-            
+
             game.finishText.setString(textStr);
-            
+
             // Центрируем текст
             sf::FloatRect textRect = game.finishText.getLocalBounds();
             game.finishText.setOrigin(textRect.left + textRect.width / 2.0f,
-                                       textRect.top + textRect.height / 2.0f);
+                textRect.top + textRect.height / 2.0f);
             game.finishText.setPosition(SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f);
-            
+
             window.draw(game.finishText);
         }
     }
 
-
-    //чистка памяти
     void DeinializeGame(Game& game)
     {
         if (game.apples != nullptr)
