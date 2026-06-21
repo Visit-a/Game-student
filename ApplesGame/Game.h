@@ -6,7 +6,9 @@
 #include "Player.h"
 #include "Apple.h"
 #include "Rock.h"
+#include "Record.h"
 #include <cstdint>
+#include <map>
 
 namespace AppleGame
 {
@@ -58,6 +60,10 @@ namespace AppleGame
 
         // Режим игры через битовую маску
         GameMode gameMode = GameMode::None;
+
+        // Таблица рекордов
+        std::map<int, Record> leaderboard;
+        std::string playerName = "Player"; // Имя игрока
 
         // Ресурсы
         sf::Texture playerTexture;

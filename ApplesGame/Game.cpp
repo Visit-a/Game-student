@@ -75,6 +75,11 @@ namespace AppleGame
         game.finishState = GameFinishState::None;
         game.timeSinceGameFinish = 0.f;
         game.background.setFillColor(sf::Color::Black);
+
+        // Обновляем таблицу рекордов с текущим игроком
+        // Но не сбрасываем таблицу, только обновляем очки игрока
+        // Если игрока нет в таблице, он добавится
+        UpdateLeaderboard(game.leaderboard, game.playerName, game.numEatenApples);
     }
 
     void InitGame(Game& game)
@@ -90,7 +95,7 @@ namespace AppleGame
         }
 
         game.finishText.setFont(game.font);
-        game.finishText.setCharacterSize(48);
+        game.finishText.setCharacterSize(36);
         game.finishText.setFillColor(sf::Color::White);
         game.finishText.setStyle(sf::Text::Bold);
 
@@ -106,6 +111,19 @@ namespace AppleGame
         game.background.setSize(sf::Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
         game.background.setFillColor(sf::Color::Black);
         game.background.setPosition(0.f, 0.f);
+
+        // Инициализация таблицы рекордов
+        game.leaderboard = CreateInitialLeaderboard();
+
+        // Запрашиваем имя игрока
+        std::cout << "Enter your name: ";
+        std::cin >> game.playerName;
+
+        // Добавляем игрока в таблицу
+        UpdateLeaderboard(game.leaderboard, game.playerName, 0);
+
+        std::cout << "\nInitial Leaderboard:\n";
+        std::cout << GetLeaderboardString(game.leaderboard, game.playerName);
 
         // Выбор режима игры пользователем
         std::cout << "\n=== SELECT GAME MODE ===\n";
@@ -225,6 +243,10 @@ namespace AppleGame
                             game.finishState = GameFinishState::Victory;
                             game.timeSinceGameFinish = 0.f;
                             std::cout << "=== VICTORY! All apples collected! ===\n";
+
+                            // Обновляем таблицу рекордов при победе
+                            UpdateLeaderboard(game.leaderboard, game.playerName, game.numEatenApples);
+                            std::cout << GetLeaderboardString(game.leaderboard, game.playerName);
                         }
                     }
                 }
@@ -247,6 +269,10 @@ namespace AppleGame
                     game.timeSinceGameFinish = 0.f;
                     game.collisionSound.play();
                     std::cout << "=== DEFEAT! Hit a rock! ===\n";
+
+                    // Обновляем таблицу рекордов при поражении
+                    UpdateLeaderboard(game.leaderboard, game.playerName, game.numEatenApples);
+                    std::cout << GetLeaderboardString(game.leaderboard, game.playerName);
                     return;
                 }
             }
@@ -262,6 +288,10 @@ namespace AppleGame
                 game.timeSinceGameFinish = 0.f;
                 game.collisionSound.play();
                 std::cout << "=== DEFEAT! Out of bounds! ===\n";
+
+                // Обновляем таблицу рекордов при поражении
+                UpdateLeaderboard(game.leaderboard, game.playerName, game.numEatenApples);
+                std::cout << GetLeaderboardString(game.leaderboard, game.playerName);
             }
         }
         else
@@ -314,19 +344,22 @@ namespace AppleGame
             window.draw(game.rocks[i].sprite);
         }
 
-        // Рисуем текст победы/поражения
+        // Рисуем текст победы/поражения и таблицу рекордов
         if (game.isGameFinished)
         {
             std::string textStr;
             if (game.finishState == GameFinishState::Victory)
             {
-                textStr = "VICTORY!\nAll " + std::to_string(game.numApples) + " apples collected!";
+                textStr = "VICTORY!\nAll " + std::to_string(game.numApples) + " apples collected!\n";
+                textStr += "Your score: " + std::to_string(game.numEatenApples) + "\n\n";
+                textStr += GetLeaderboardString(game.leaderboard, game.playerName);
                 game.finishText.setFillColor(sf::Color::Yellow);
             }
             else if (game.finishState == GameFinishState::Defeat)
             {
                 textStr = "DEFEAT!\nApples collected: " + std::to_string(game.numEatenApples) +
-                    "/" + std::to_string(game.numApples);
+                    "/" + std::to_string(game.numApples) + "\n\n";
+                textStr += GetLeaderboardString(game.leaderboard, game.playerName);
                 game.finishText.setFillColor(sf::Color::White);
             }
 

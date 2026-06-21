@@ -5,7 +5,7 @@
 #include <SFML/Audio.hpp>
 #include "Constants.h"
 #include "Game.h"
-
+#include <ctime>
 
 int main()
 {
@@ -20,7 +20,7 @@ int main()
 
     // Создаем игру
     Game game;
-    InitGame(game);  // внутри спросит режим
+    InitGame(game);  // внутри спросит режим и имя
 
     // Часы для дельты времени
     sf::Clock gameClock;

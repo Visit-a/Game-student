@@ -13,6 +13,7 @@ namespace AppleGame
     const float PAUSE_LENGTH = 3.f;
     const int NUM_ROCKS = 10;
     const float ROCK_SIZE = 20.f;
+    const int MAX_LEADERBOARD_SIZE = 10; // Максимальное количество записей в таблице рекордов
 
     // НЕ ОПРЕДЕЛЯЕМ GameMode здесь, он будет только в Game.h
 }
